@@ -55,11 +55,9 @@ public class NoteShooterSubsystem extends SubsystemBase {
   }
 
   public Command cmdShooterLaunch() {
-    return Commands.run(() -> setShootSpeed(ShooterConstants.kSHOOT_SPEED_LAUNCH), this);
-  }
-
-  public Command cmdShooterStop() {
-    return Commands.runOnce(() -> setShootSpeed(ShooterConstants.kSHOOT_SPEED_IDLE), this);
+    return Commands.runEnd(() -> setShootSpeed(ShooterConstants.kSHOOT_SPEED_LAUNCH),
+     () -> setShootSpeed(ShooterConstants.kSHOOT_SPEED_IDLE),
+      this);
   }
 
 }

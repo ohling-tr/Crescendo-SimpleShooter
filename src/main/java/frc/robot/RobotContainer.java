@@ -65,8 +65,7 @@ public class RobotContainer {
     //m_driverController.b().whileTrue(m_exampleSubsystem.exampleMethodCommand());
 
     m_driverController.leftTrigger(OperatorConstants.kCONTROLLER_TRIGGER_THRESHOLD)
-      .whileTrue(cmdShootNote())
-      .onFalse(cmdShootStop());
+      .whileTrue(cmdShootNote());
 
   }
 
@@ -94,11 +93,6 @@ public class RobotContainer {
                 Commands.sequence(Commands.waitSeconds(OperatorConstants.kINTAKE_FEED_DELAY),
                     m_noteIntakeSubsystem.cmdSpinnerEject()))
            );
-  }
-
-  public Command cmdShootStop() {
-    return (Commands.parallel(m_noteShooterSubsystem.cmdShooterStop(), 
-              m_noteIntakeSubsystem.cmdSpinnerStop()) );
   }
 
 }

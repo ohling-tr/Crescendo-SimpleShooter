@@ -48,14 +48,13 @@ public class NoteIntakeSubsystem extends SubsystemBase {
   }
 
   public Command cmdSpinnerEject() {
-    return Commands.run(() -> setSpinnerSpeed(IntakeConstants.kSPINNER_SPEED_EJECT), this);
+    return Commands.runEnd(() -> setSpinnerSpeed(IntakeConstants.kSPINNER_SPEED_EJECT),
+     () -> setSpinnerSpeed(IntakeConstants.kSPINNER_SPEED_IDLE),
+     this);
   }
 
   public Command cmdSpinnerIdle() {
     return Commands.run(() -> setSpinnerSpeed(IntakeConstants.kSPINNER_SPEED_IDLE), this);
   }
   
-  public Command cmdSpinnerStop() {
-    return Commands.runOnce(() -> setSpinnerSpeed(IntakeConstants.kSPINNER_SPEED_IDLE), this);
-  }
 }
