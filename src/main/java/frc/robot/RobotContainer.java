@@ -97,7 +97,7 @@ public class RobotContainer {
   }
 
   public Command cmdShootStop() {
-    return (Commands.race(m_noteShooterSubsystem.cmdShooterStop(), 
+    return (Commands.parallel(m_noteShooterSubsystem.cmdShooterStop(), 
               m_noteIntakeSubsystem.cmdSpinnerStop()) );
   }
 
