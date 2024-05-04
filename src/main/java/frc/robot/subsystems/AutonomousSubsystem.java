@@ -1,21 +1,12 @@
-package frc.robot.Subsystems;
+package frc.robot.subsystems;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.List;
 import java.util.Map;
 
 import edu.wpi.first.math.controller.ProfiledPIDController;
-import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.trajectory.Trajectory;
-import edu.wpi.first.math.trajectory.TrajectoryGenerator;
-import edu.wpi.first.math.trajectory.TrajectoryUtil;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.networktables.GenericEntry;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.shuffleboard.BuiltInWidgets;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
@@ -23,7 +14,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
-
+import frc.robot.RobotContainer;
 import frc.robot.Libraries.AutonomousCommands;
 import frc.robot.Libraries.AutonomousSteps;
 import frc.robot.Libraries.ConsoleAuto;
@@ -98,9 +89,11 @@ public class AutonomousSubsystem extends SubsystemBase{
   private String kSTATUS_NULL = "NULL";
 
   private int kSTEPS = 5;
-  private boolean kRESET_ODOMETRY = true;
+  //private boolean kRESET_ODOMETRY = true;
 
   ConsoleAuto m_ConsoleAuto;
+  RobotContainer m_robotContainer;
+
   AutonomousCommands m_autoSelectCommand[] = AutonomousCommands.values();
   AutonomousCommands m_selectedCommand;
 
@@ -223,25 +216,27 @@ public class AutonomousSubsystem extends SubsystemBase{
   private boolean m_bIsCommandDone = false;
   private int m_stepIndex;
   private int m_iWaitCount;
-  private Trajectory m_driveTrajectory;
-  private WaitCommand m_wait1;
+  //private Trajectory m_driveTrajectory;
+  //private WaitCommand m_wait1;
   private StepState m_stepWait1Sw1;
-  private WaitCommand m_wait2;
+  //private WaitCommand m_wait2;
   private StepState m_stepWait2Sw1;
   private StepState m_stepWait2Sw2;
   private StepState m_stepWait2SwAB;
   private StepState m_stepWaitForCount;
-
   
+
+  /* 
   private Command m_turnPath;
   private StepState m_stepturnPath;
    private String m_path1JSON = "Blue Right Out 1.wpilib.json";
+  */
   // private Trajectory m_trajPath1;
 
   private AutonomousSteps m_currentStepName;
   private StepState[][] m_cmdSteps;
 
-  public AutonomousSubsystem(ConsoleAuto consoleAuto) {
+  public AutonomousSubsystem(ConsoleAuto consoleAuto, RobotContainer m_robotContainer) {
     m_ConsoleAuto = consoleAuto;
 
     m_selectedCommand = m_autoSelectCommand[0];
@@ -350,6 +345,8 @@ m_stepTestReadFile = new StepState(AutonomousSteps.TEST);
           case WAITLOOP:
             m_currentCommand = getWaitCommand(m_ConsoleAuto.getROT_SW_1());
             break;
+          case SHOOTNOTE:
+            m_currentCommand = m_robotContainer.cmdShootNote();
           default:
             m_currentCommand = null; //m_autoCommand.getSelected(m_currentStepName);
             break;

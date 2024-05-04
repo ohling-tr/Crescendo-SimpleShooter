@@ -6,8 +6,8 @@ package frc.robot.Libraries;
 
 /** Add your docs here. */
 public enum AutonomousCommands {
-    GENERIC_DEFAULT,
-    BALANCE,
+    WALLDRIVE,
+    SPEAKERCENTER,
     BEND;
 
 
