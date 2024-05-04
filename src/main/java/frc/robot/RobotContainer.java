@@ -6,6 +6,8 @@ package frc.robot;
 
 import frc.robot.Constants.IntakeConstants;
 import frc.robot.Constants.OperatorConstants;
+import frc.robot.Libraries.ConsoleAuto;
+import frc.robot.subsystems.AutonomousSubsystem;
 import frc.robot.commands.Autos;
 import frc.robot.commands.ExampleCommand;
 import frc.robot.subsystems.ExampleSubsystem;
@@ -32,6 +34,10 @@ public class RobotContainer {
   // Replace with CommandPS4Controller or CommandJoystick if needed
   private final CommandXboxController m_driverController =
       new CommandXboxController(OperatorConstants.kDRIVER_CONTROLLER_PORT);
+  private final ConsoleAuto m_consoleAuto =
+      new ConsoleAuto(OperatorConstants.kCONSOLE_AUTO_PORT);
+
+  private final AutonomousSubsystem m_autonomousSubysystem = new AutonomousSubsystem(m_consoleAuto);
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
@@ -57,8 +63,8 @@ public class RobotContainer {
     //new Trigger(m_exampleSubsystem::exampleCondition)
     //    .onTrue(new ExampleCommand(m_exampleSubsystem));
 
-    //new Trigger(RobotModeTriggers.disabled())
-    //  .onTrue(get auto select command);
+    new Trigger(RobotModeTriggers.disabled())
+      .onTrue(m_autonomousSubysystem.cmdAutoSelect());
 
     // Schedule `exampleMethodCommand` when the Xbox controller's B button is pressed,
     // cancelling on release.

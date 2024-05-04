@@ -42,6 +42,7 @@ public final class Constants {
   public static class OperatorConstants {
 
     public static final int kDRIVER_CONTROLLER_PORT = 0;
+    public static final int kCONSOLE_AUTO_PORT = 1;
 
     public static final double kCONTROLLER_TRIGGER_THRESHOLD = 0.75;
     public static final double kINTAKE_FEED_DELAY = 0.8;
