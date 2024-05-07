@@ -1,6 +1,7 @@
 package frc.robot.subsystems;
 
 import java.util.Map;
+import java.util.function.BooleanSupplier;
 
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.trajectory.Trajectory;
@@ -12,6 +13,7 @@ import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.FunctionalCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import frc.robot.RobotContainer;
@@ -224,6 +226,7 @@ public class AutonomousSubsystem extends SubsystemBase{
   private StepState m_stepWait2Sw2;
   private StepState m_stepWait2SwAB;
   private StepState m_stepWaitForCount;
+  private StepState m_stepShootNote;
   
 
   /* 
@@ -251,6 +254,8 @@ public class AutonomousSubsystem extends SubsystemBase{
 
     m_stepWaitForCount = new StepState(AutonomousSteps.WAITLOOP);
 
+    m_stepShootNote = new StepState(AutonomousSteps.SHOOTNOTE);
+
     
     var thetaController = new ProfiledPIDController(2, 0,0, new Constraints(5, 1));
         thetaController.enableContinuousInput(-Math.PI, Math.PI);
@@ -266,13 +271,21 @@ public class AutonomousSubsystem extends SubsystemBase{
 m_autoCommand.addOption(AutonomousSteps.TEST, m_testReadFilePath);
 m_stepTestReadFile = new StepState(AutonomousSteps.TEST);
 
-    m_cmdSteps = new StepState[][] {
-        { m_stepWaitForCount, m_stepDrivePath }
-//        { m_stepWaitForCount, m_stepTestReadFile }
+*/
+
+/*
+ *  CRITICAL PIECE
+ * This two dimensional array defines the steps for each selectable Auto pattern
+ * First dimension is set by the ConsoleAuto selector switch (passed in via POV 0)
+ * Second dimension is the sequence of the step(s) for the pattern
+ */
+  m_cmdSteps = new StepState[][] {
+        { m_stepWaitForCount, m_stepWait2Sw1 },
+        { m_stepWaitForCount, m_stepShootNote }
        // { m_stepWaitForCount,  m_stepturnPath }
         // { m_stepWaitForCount, m_stepMoveArm, m_stepPlaceConeM, m_stepDrive3Path }
     };
-    */
+
   }
 
     @Override
@@ -289,9 +302,13 @@ m_stepTestReadFile = new StepState(AutonomousSteps.TEST);
       autoSelectIx = 0;
       m_iPatternSelect = 0;
     }
+    if (DriverStation.isDSAttached()) {
 //System.out.println(DriverStation.getAlliance().toString());
-    boolean isAllianceRed = (DriverStation.getAlliance().toString() == "Red");
-    m_allianceColor.setBoolean(isAllianceRed);
+      boolean isAllianceRed = (DriverStation.getAlliance().toString() == "Red");
+      m_allianceColor.setBoolean(isAllianceRed);
+    } else {
+      m_allianceColor.setBoolean(true);
+    }
 
     m_selectedCommand = m_autoSelectCommand[autoSelectIx];
     m_strCommand = m_selectedCommand.toString();
@@ -318,6 +335,7 @@ m_stepTestReadFile = new StepState(AutonomousSteps.TEST);
     m_iWaitLoop.setValue(m_iWaitCount);
 
   }
+  
   public void initGetCommand() {
     m_stepIndex = -1;
 
@@ -329,35 +347,35 @@ m_stepTestReadFile = new StepState(AutonomousSteps.TEST);
   
   public Command getNextCommand() {
     m_currentStepName = null;
-    m_currentCommand = null;
+    Command currentCommand = null;
     String completionAction = kSTATUS_DONE;
 
-    while (m_currentCommand == null && !m_bIsCommandDone) {
+    while (currentCommand == null && !m_bIsCommandDone) {
       m_currentStepName = getNextActiveCommand(completionAction);
       if (m_currentStepName != null) {
         switch (m_currentStepName) {
           case WAIT1:
-            m_currentCommand = getWaitCommand(1);
+            currentCommand = getWaitCommand(1);
             break;
           case WAIT2:
-            m_currentCommand = getWaitCommand(2);
+            currentCommand = getWaitCommand(2);
             break;
           case WAITLOOP:
-            m_currentCommand = getWaitCommand(m_ConsoleAuto.getROT_SW_1());
+            currentCommand = getWaitCommand(m_ConsoleAuto.getROT_SW_1());
             break;
           case SHOOTNOTE:
-            m_currentCommand = m_robotContainer.cmdShootNote();
+            currentCommand = m_robotContainer.cmdShootNote();
           default:
-            m_currentCommand = null; //m_autoCommand.getSelected(m_currentStepName);
+            currentCommand = null; //m_autoCommand.getSelected(m_currentStepName);
             break;
         }
 
-        if (m_currentCommand == null) {
+        if (currentCommand == null) {
           completionAction = kSTATUS_NULL;
         }
       }
     }
-    return m_currentCommand;
+    return currentCommand;
   }
 
   private AutonomousSteps getNextActiveCommand(String completionAction) {
@@ -404,4 +422,57 @@ m_stepTestReadFile = new StepState(AutonomousSteps.TEST);
   public Command cmdAutoSelect() {
     return Commands.run(() -> selectAutoCommand());
   }
+
+  /*
+   * Command to process the selected command list
+   * Gets the starting command
+   * Executes the command execute
+   * Tests for command isFinished and if so checks for the next command
+   */
+  
+  public Command cmdAutoControl() {
+    return new FunctionalCommand(
+      () -> autoCntlInit(),
+      () -> autoCntlExecute(),
+      (interrupted) -> autoCntlEnd(interrupted),
+      () -> autoCntlIsFinished(),
+      this
+    );
+  }
+
+  private void autoCntlInit() {
+    initGetCommand();
+    m_currentCommand = getNextCommand();
+    m_currentCommand.initialize();
+  }
+
+  private void autoCntlExecute() {
+    m_currentCommand.execute();
+  }
+
+  private void autoCntlEnd(Boolean interrupted) {
+    m_currentCommand.end(interrupted);
+  }
+
+  private boolean autoCntlIsFinished() {
+    boolean areWeThereYet = true;
+    Command nextCommand = null;
+    if (m_currentCommand.isFinished() == false) {
+        areWeThereYet = false;
+    } else {
+        nextCommand = getNextCommand();
+        if (nextCommand != null) {
+            switchCommand(nextCommand);
+            areWeThereYet = false;
+        }
+    }
+    return areWeThereYet;
+  }
+  
+  // stops current command then goes to next one
+  private void switchCommand(final Command cmd) {
+    m_currentCommand.end(false);
+    m_currentCommand = cmd;
+    m_currentCommand.initialize();
+}
 }

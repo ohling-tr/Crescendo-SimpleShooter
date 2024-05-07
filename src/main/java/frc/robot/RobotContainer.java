@@ -67,7 +67,7 @@ public class RobotContainer {
     //    .onTrue(new ExampleCommand(m_exampleSubsystem));
 
     new Trigger(RobotModeTriggers.disabled())
-      .onTrue(m_autonomousSubysystem.cmdAutoSelect());
+      .whileTrue(m_autonomousSubysystem.cmdAutoSelect());
 
     // Schedule `exampleMethodCommand` when the Xbox controller's B button is pressed,
     // cancelling on release.
@@ -85,7 +85,8 @@ public class RobotContainer {
    */
   public Command getAutonomousCommand() {
     // An example command will be run in autonomous
-    return null;
+    return m_autonomousSubysystem.cmdAutoControl();
+    //return null;
     //return Autos.exampleAuto(m_exampleSubsystem);
   }
 
