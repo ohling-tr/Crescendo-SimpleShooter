@@ -432,10 +432,10 @@ m_stepTestReadFile = new StepState(AutonomousSteps.TEST);
   
   public Command cmdAutoControl() {
     return new FunctionalCommand(
-      () -> autoCntlInit(),
-      () -> autoCntlExecute(),
+      this::autoCntlInit,
+      this::autoCntlExecute,
       (interrupted) -> autoCntlEnd(interrupted),
-      () -> autoCntlIsFinished(),
+      this::autoCntlIsFinished,
       this
     );
   }
