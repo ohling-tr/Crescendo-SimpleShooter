@@ -10,6 +10,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.FunctionalCommand;
 import edu.wpi.first.wpilibj2.command.PrintCommand;
+import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
@@ -96,6 +97,7 @@ public class AutonomousSubsystem extends SubsystemBase{
   private String[] m_strStepSwitch = new String[kSTEP_MAX];
   private boolean[] m_bStepSWList = new boolean[kSTEP_MAX];
   private String[] m_strStepStatusList = new String[kSTEP_MAX];
+  private int m_iCmdCount = 0;
 
   private ShuffleboardTab m_tab = Shuffleboard.getTab(kAUTO_TAB);
 
@@ -120,11 +122,11 @@ public class AutonomousSubsystem extends SubsystemBase{
 
   private int m_iPatternSelect;
 
-  private Command m_currentCommand;
-  private boolean m_bIsCommandDone = false;
-  private int m_stepIndex;
+  //private Command m_currentCommand;
+  //private boolean m_bIsCommandDone = false;
+  //private int m_stepIndex;
 
-  private AutonomousSteps m_currentStepName;
+  //private AutonomousSteps m_currentStepName;
   private AutonomousSteps[][] m_cmdSteps;
 
   public AutonomousSubsystem(ConsoleAuto consoleAuto, RobotContainer robotContainer) {
@@ -223,11 +225,15 @@ public class AutonomousSubsystem extends SubsystemBase{
     int iWaitCount = m_ConsoleAuto.getROT_SW_1();
     m_iWaitLoop.setValue(iWaitCount);
 
+    m_iCmdCount = 0;
     for (int ix = 0; ix < m_cmdSteps[autoSelectIx].length; ix++) {
       AutonomousSteps autoStep = m_cmdSteps[autoSelectIx][ix];
       m_strStepList[ix] = autoStep.name();
       m_strStepSwitch[ix] = getStepSwitch(autoStep);
       m_bStepSWList[ix] = getStepBoolean(autoStep);
+      if (m_bStepSWList[ix]) {
+        m_iCmdCount++;
+      }
       m_strStepStatusList[ix] = kSTATUS_PEND;
     }
     for (int ix = m_cmdSteps[autoSelectIx].length; ix < kSTEP_MAX; ix++) {
@@ -282,19 +288,22 @@ public class AutonomousSubsystem extends SubsystemBase{
   
   public Command cmdAutoControl() {
 
-    //return Commands.run(this::getNextCommand);
-  
-    return new FunctionalCommand(
-      this::autoCntlInit,
-      this::autoCntlExecute,
-      (interrupted) -> autoCntlEnd(interrupted),
-      this::autoCntlIsFinished,
-      this
-    );
-  
+    Command autoCmdList[] = new Command[m_iCmdCount];
+
+    int cmdIx = 0;
+    for (int ix = 0; ix < m_cmdSteps[m_iPatternSelect].length; ix++) {
+      if (m_bStepSWList[ix]) {
+        autoCmdList[cmdIx] = Commands.print("command " + m_strStepList[ix] + cmdIx + " from " + ix);
+        cmdIx++;
+      }
+    }
+
+    SequentialCommandGroup autoCmd = new SequentialCommandGroup(autoCmdList);
+    return autoCmd;
+   
   }
 
-  private void autoCntlInit() {
+  /*private void autoCntlInit() {
     m_stepIndex = -1;
     //private Command m_currentCommand;
     m_bIsCommandDone = true;
@@ -320,6 +329,7 @@ public class AutonomousSubsystem extends SubsystemBase{
   public void isCommandDone() {
     m_bIsCommandDone = true;
   }
+  
 
   private void autoCntlEnd(Boolean interrupted) {
     //m_currentCommand.end(interrupted);
@@ -329,5 +339,6 @@ public class AutonomousSubsystem extends SubsystemBase{
     boolean areWeThereYet = true;
     return areWeThereYet;
   }
+  */
   
 }
