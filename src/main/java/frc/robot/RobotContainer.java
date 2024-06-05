@@ -8,14 +8,10 @@ import frc.robot.Constants.IntakeConstants;
 import frc.robot.Constants.OperatorConstants;
 import frc.robot.Libraries.ConsoleAuto;
 import frc.robot.subsystems.AutonomousSubsystem;
-import frc.robot.commands.Autos;
-import frc.robot.commands.ExampleCommand;
-import frc.robot.subsystems.ExampleSubsystem;
 import frc.robot.subsystems.NoteIntakeSubsystem;
 import frc.robot.subsystems.NoteShooterSubsystem;
 
-import java.time.chrono.ThaiBuddhistChronology;
-
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
@@ -42,6 +38,8 @@ public class RobotContainer {
 
   private final AutonomousSubsystem m_autonomousSubysystem = new AutonomousSubsystem(m_consoleAuto, this);
 
+  static boolean m_runAutoConsole;
+
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
 
@@ -66,16 +64,45 @@ public class RobotContainer {
     //new Trigger(m_exampleSubsystem::exampleCondition)
     //    .onTrue(new ExampleCommand(m_exampleSubsystem));
 
-    new Trigger(RobotModeTriggers.disabled())
+    runAutoConsoleFalse();
+        //new Trigger(DriverStation::isDisabled)
+    //new Trigger(() -> m_runAutoConsole)
+    //new Trigger(RobotModeTriggers.disabled())
+    new Trigger(trgAutoSelect())
       .whileTrue(m_autonomousSubysystem.cmdAutoSelect());
+    runAutoConsoleTrue();
 
-    // Schedule `exampleMethodCommand` when the Xbox controller's B button is pressed,
-    // cancelling on release.
-    //m_driverController.b().whileTrue(m_exampleSubsystem.exampleMethodCommand());
+    //THIS DOES NOT WORK //
+    new Trigger(RobotModeTriggers.disabled())
+      .onTrue(Commands.runOnce(this::runAutoConsoleTrue))
+      ;
+    // WHY NOT??????
+
+    new Trigger(RobotModeTriggers.disabled())
+      .onFalse(Commands.runOnce(this::runAutoConsoleFalse))
+      ;
+    
+    //new Trigger(RobotModeTriggers.autonomous())
+    //  .whileTrue(m_autonomousSubysystem.cmdAutoControl());
 
     m_driverController.leftTrigger(OperatorConstants.kCONTROLLER_TRIGGER_THRESHOLD)
       .whileTrue(cmdShootNote());
 
+  }
+
+  private static Trigger trgAutoSelect() {
+    System.out.println("bool auto console" + m_runAutoConsole);
+    return new Trigger(() -> m_runAutoConsole);
+  }
+
+  private void runAutoConsoleTrue() {
+    m_runAutoConsole = true;
+    System.out.println("true " + m_runAutoConsole);
+  }
+
+  private void runAutoConsoleFalse() {
+    m_runAutoConsole = false;
+    System.out.println("false " + m_runAutoConsole);
   }
 
   /**
@@ -86,8 +113,7 @@ public class RobotContainer {
   public Command getAutonomousCommand() {
     // An example command will be run in autonomous
     return m_autonomousSubysystem.cmdAutoControl();
-    //return null;
-    //return Autos.exampleAuto(m_exampleSubsystem);
+
   }
 
   /*
