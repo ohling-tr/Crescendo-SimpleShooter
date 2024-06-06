@@ -4,14 +4,13 @@
 
 package frc.robot;
 
-import frc.robot.Constants.IntakeConstants;
 import frc.robot.Constants.OperatorConstants;
 import frc.robot.Libraries.ConsoleAuto;
 import frc.robot.subsystems.AutonomousSubsystem;
+import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.NoteIntakeSubsystem;
 import frc.robot.subsystems.NoteShooterSubsystem;
 
-import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
@@ -25,14 +24,14 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
  * subsystems, commands, and trigger mappings) should be declared here.
  */
 public class RobotContainer {
-  // The robot's subsystems and commands are defined here...
-  //private final ExampleSubsystem m_exampleSubsystem = new ExampleSubsystem();
+
   private final NoteShooterSubsystem m_noteShooterSubsystem = new NoteShooterSubsystem();
   private final NoteIntakeSubsystem m_noteIntakeSubsystem = new NoteIntakeSubsystem();
+  private final DriveSubsystem m_driveSubsystem = new DriveSubsystem();
 
-  // Replace with CommandPS4Controller or CommandJoystick if needed
   private final CommandXboxController m_driverController =
       new CommandXboxController(OperatorConstants.kDRIVER_CONTROLLER_PORT);
+
   private final ConsoleAuto m_consoleAuto =
       new ConsoleAuto(OperatorConstants.kCONSOLE_AUTO_PORT);
 
@@ -65,8 +64,7 @@ public class RobotContainer {
     //    .onTrue(new ExampleCommand(m_exampleSubsystem));
 
     runAutoConsoleFalse();
-        //new Trigger(DriverStation::isDisabled)
-    //new Trigger(() -> m_runAutoConsole)
+    //new Trigger(DriverStation::isDisabled)
     //new Trigger(RobotModeTriggers.disabled())
     new Trigger(trgAutoSelect())
       .whileTrue(m_autonomousSubysystem.cmdAutoSelect());
@@ -81,9 +79,6 @@ public class RobotContainer {
     new Trigger(RobotModeTriggers.disabled())
       .onFalse(Commands.runOnce(this::runAutoConsoleFalse))
       ;
-    
-    //new Trigger(RobotModeTriggers.autonomous())
-    //  .whileTrue(m_autonomousSubysystem.cmdAutoControl());
 
     m_driverController.leftTrigger(OperatorConstants.kCONTROLLER_TRIGGER_THRESHOLD)
       .whileTrue(cmdShootNote());
@@ -91,7 +86,7 @@ public class RobotContainer {
   }
 
   private static Trigger trgAutoSelect() {
-    System.out.println("bool auto console" + m_runAutoConsole);
+    //System.out.println("bool auto console" + m_runAutoConsole);
     return new Trigger(() -> m_runAutoConsole);
   }
 
@@ -129,6 +124,10 @@ public class RobotContainer {
                 Commands.sequence(Commands.waitSeconds(OperatorConstants.kINTAKE_FEED_DELAY),
                     m_noteIntakeSubsystem.cmdSpinnerEject()))
            );
+  }
+
+  public Command getDrivePath() {
+    return m_driveSubsystem.getDrivePath();
   }
 
 }

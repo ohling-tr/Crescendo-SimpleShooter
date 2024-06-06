@@ -8,13 +8,8 @@ import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.FunctionalCommand;
-import edu.wpi.first.wpilibj2.command.PrintCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import edu.wpi.first.wpilibj2.command.WaitCommand;
-import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
-import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.RobotContainer;
 import frc.robot.Libraries.ConsoleAuto;
 //import frc.robot.Libraries.StepState;
@@ -24,9 +19,12 @@ import frc.robot.Libraries.ConsoleAuto;
 
 public class AutonomousSubsystem extends SubsystemBase{
 
+  // limited by the rotary switch settings of 6 and POV max of 8.
   public enum AutonomousCommands {
     WALLDRIVE,
-    SPEAKERCENTER;
+    SPEAKERCENTER,
+    SPEAKERLEFT,
+    SPEAKERRIGHT;
 
     public String getSelectName() {
         return this.toString();
@@ -44,6 +42,9 @@ public class AutonomousSubsystem extends SubsystemBase{
     SHOOTNOTE(1),
     DRV_INTK_1(2),
     DRV_STRT_1(3,2),
+    DRV_BACK_1(4),
+    DRV_INTK_2(5),
+    DRV_STRT_2(6,5),
     END()
     ;
 
@@ -73,18 +74,10 @@ public class AutonomousSubsystem extends SubsystemBase{
       return m_iSwBFalse;
     }
 
-    ;
-
   }
 
   private String kAUTO_TAB = "Autonomous";
-  private String kSTATUS_PEND = "PEND";
-  private String kSTATUS_ACTIVE = "ACTV";
-  private String kSTATUS_DONE = "DONE";
-  private String kSTATUS_SKIP = "SKIP";
-  private String kSTATUS_NULL = "NULL";
-
-  private int kSTEP_MAX = 8;
+  private int kSTEP_MAX = 12;
 
   ConsoleAuto m_ConsoleAuto;
   RobotContainer m_robotContainer;
@@ -93,10 +86,11 @@ public class AutonomousSubsystem extends SubsystemBase{
   AutonomousCommands m_selectedCommand;
 
   private String m_strCommand;
+  private int m_iWaitCount;
+  private AutonomousSteps[] m_autoStep = new AutonomousSteps[kSTEP_MAX];
   private String[] m_strStepList = new String[kSTEP_MAX];
   private String[] m_strStepSwitch = new String[kSTEP_MAX];
   private boolean[] m_bStepSWList = new boolean[kSTEP_MAX];
-  private String[] m_strStepStatusList = new String[kSTEP_MAX];
   private int m_iCmdCount = 0;
 
   private ShuffleboardTab m_tab = Shuffleboard.getTab(kAUTO_TAB);
@@ -122,11 +116,6 @@ public class AutonomousSubsystem extends SubsystemBase{
 
   private int m_iPatternSelect;
 
-  //private Command m_currentCommand;
-  //private boolean m_bIsCommandDone = false;
-  //private int m_stepIndex;
-
-  //private AutonomousSteps m_currentStepName;
   private AutonomousSteps[][] m_cmdSteps;
 
   public AutonomousSubsystem(ConsoleAuto consoleAuto, RobotContainer robotContainer) {
@@ -136,6 +125,7 @@ public class AutonomousSubsystem extends SubsystemBase{
     m_selectedCommand = m_autoSelectCommand[0];
     m_strCommand = m_selectedCommand.toString();
     m_iPatternSelect = 0;
+    m_iWaitCount = 0;
 
     for (int iat = 0; iat < kSTEP_MAX; iat++) {
       initStepList(iat);
@@ -146,12 +136,25 @@ public class AutonomousSubsystem extends SubsystemBase{
  *  CRITICAL PIECE
  * This two dimensional array defines the steps for each selectable Auto pattern
  * First dimension is set by the ConsoleAuto selector switch (passed in via POV 0)
- * Second dimension is the sequence of the step(s) for the pattern
+ * Second dimension is the sequence of the possible step(s) for the pattern
  */
     m_cmdSteps = new AutonomousSteps[][] {
           {AutonomousSteps.WAITLOOP, AutonomousSteps.DRV_STRT_1},
-          {AutonomousSteps.WAITLOOP, AutonomousSteps.SHOOTNOTE, AutonomousSteps.DRV_INTK_1, AutonomousSteps.DRV_STRT_1}
+          {AutonomousSteps.WAITLOOP, 
+            AutonomousSteps.SHOOTNOTE, 
+            AutonomousSteps.DRV_INTK_1, 
+            AutonomousSteps.DRV_STRT_1,
+            AutonomousSteps.DRV_BACK_1,
+            AutonomousSteps.SHOOTNOTE,
+            AutonomousSteps.DRV_INTK_2,
+            AutonomousSteps.DRV_STRT_2
+          }
     };
+
+    if (m_autoStep.length < m_cmdSteps.length ) {
+      System.out.println("WARNING - Auto Commands LT Command Steps");
+    }
+    // more? like more commands than supported by the switch
 
   }
 
@@ -178,20 +181,13 @@ public class AutonomousSubsystem extends SubsystemBase{
       .withPosition(ix *2, 5)
       .withSize(2, 1)
       .withWidget(BuiltInWidgets.kBooleanBox);
-    
-    labelName = "Status " + ix;
-    m_tab
-      .addString(labelName, () -> m_strStepStatusList[ix])
-      .withPosition(ix *2, 6)
-      .withSize(2, 1)
-      .withWidget(BuiltInWidgets.kTextView);
+
   }
 
   private void initStepList(int ix) {
       m_strStepList[ix] = "";
       m_strStepSwitch[ix] = "";
       m_bStepSWList[ix] = false;
-      m_strStepStatusList[ix] = "";
   }
 
     @Override
@@ -201,8 +197,6 @@ public class AutonomousSubsystem extends SubsystemBase{
    
 
   public void selectAutoCommand() {
-
-    //System.out.println("in select auto method");
 
     int autoSelectIx = m_ConsoleAuto.getROT_SW_0();
     m_iPatternSelect = autoSelectIx;
@@ -222,19 +216,18 @@ public class AutonomousSubsystem extends SubsystemBase{
     m_strCommand = m_selectedCommand.toString();
     m_autoCmd.setString(m_strCommand);
 
-    int iWaitCount = m_ConsoleAuto.getROT_SW_1();
-    m_iWaitLoop.setValue(iWaitCount);
+    m_iWaitCount = m_ConsoleAuto.getROT_SW_1();
+    m_iWaitLoop.setValue(m_iWaitCount);
 
     m_iCmdCount = 0;
     for (int ix = 0; ix < m_cmdSteps[autoSelectIx].length; ix++) {
-      AutonomousSteps autoStep = m_cmdSteps[autoSelectIx][ix];
-      m_strStepList[ix] = autoStep.name();
-      m_strStepSwitch[ix] = getStepSwitch(autoStep);
-      m_bStepSWList[ix] = getStepBoolean(autoStep);
+      m_autoStep[ix] = m_cmdSteps[autoSelectIx][ix];
+      m_strStepList[ix] = m_autoStep[ix].name();
+      m_strStepSwitch[ix] = getStepSwitch(m_autoStep[ix]);
+      m_bStepSWList[ix] = getStepBoolean(m_autoStep[ix]);
       if (m_bStepSWList[ix]) {
         m_iCmdCount++;
       }
-      m_strStepStatusList[ix] = kSTATUS_PEND;
     }
     for (int ix = m_cmdSteps[autoSelectIx].length; ix < kSTEP_MAX; ix++) {
       initStepList(ix);
@@ -267,17 +260,13 @@ public class AutonomousSubsystem extends SubsystemBase{
     }
     return stepBool;
   }
-  
-  public Command getWaitCommand(double seconds) {
-    return Commands.waitSeconds(seconds);
-  }
+
 
   /*
    * Command to run the Auto selection process with Operator Console interaction
    * This should be handled by a trigger that is started on Disabled status
    */
   public Command cmdAutoSelect() {
-    //System.out.println("getting select auto command");
     return Commands.run(this::selectAutoCommand)
           .ignoringDisable(true);
   }
@@ -285,7 +274,6 @@ public class AutonomousSubsystem extends SubsystemBase{
   /*
    * Command to process the selected command list
   */
-  
   public Command cmdAutoControl() {
 
     Command autoCmdList[] = new Command[m_iCmdCount];
@@ -293,7 +281,7 @@ public class AutonomousSubsystem extends SubsystemBase{
     int cmdIx = 0;
     for (int ix = 0; ix < m_cmdSteps[m_iPatternSelect].length; ix++) {
       if (m_bStepSWList[ix]) {
-        autoCmdList[cmdIx] = Commands.print("command " + m_strStepList[ix] + cmdIx + " from " + ix);
+        autoCmdList[cmdIx] = getAutoCmd(m_autoStep[ix]);
         cmdIx++;
       }
     }
@@ -303,42 +291,33 @@ public class AutonomousSubsystem extends SubsystemBase{
    
   }
 
-  /*private void autoCntlInit() {
-    m_stepIndex = -1;
-    //private Command m_currentCommand;
-    m_bIsCommandDone = true;
-  }
+  private Command getAutoCmd(AutonomousSteps autoStep) {
 
-  // this does not work as hoped
-  // v2 coming soon
-  private void autoCntlExecute() {
-    m_currentStepName = null;
-    System.out.println("in autoCntlExecute");
-
-    if (m_bIsCommandDone) {
-      m_bIsCommandDone = false;
-      System.out.println("inside command trigger if");
-      new Trigger(RobotModeTriggers.autonomous())
-        .and(() -> true)
-        .whileTrue(Commands.sequence(new PrintCommand("in triggered command")
-                                ,new WaitCommand(4))
-                .andThen(Commands.run(() -> isCommandDone())));
+    Command workCmd = Commands.print("command not found for " + autoStep.name());
+    switch (autoStep) {
+      case WAIT1:
+        workCmd = getWaitCommand(1);
+        break;
+      case WAIT2:
+        workCmd = getWaitCommand(2);
+        break;
+      case WAITLOOP:
+        workCmd = getWaitCommand(m_iWaitCount);
+        break;
+      case SHOOTNOTE:
+        workCmd = m_robotContainer.cmdShootNote().withTimeout(2);
+        break;
+      case DRV_STRT_1:
+        workCmd = m_robotContainer.getDrivePath();
+        break;
+      default:
+        break;
     }
+    return workCmd;
   }
 
-  public void isCommandDone() {
-    m_bIsCommandDone = true;
+  private Command getWaitCommand(double seconds) {
+    return Commands.waitSeconds(seconds);
   }
-  
-
-  private void autoCntlEnd(Boolean interrupted) {
-    //m_currentCommand.end(interrupted);
-  }
-
-  private boolean autoCntlIsFinished() {
-    boolean areWeThereYet = true;
-    return areWeThereYet;
-  }
-  */
   
 }
