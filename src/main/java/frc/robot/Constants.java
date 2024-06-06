@@ -31,7 +31,7 @@ public final class Constants {
     public static final int kSHOOTER_LEFT_MOTOR_ID = 10;
     public static final int kSHOOTER_RIGHT_MOTOR_ID = 11;
 
-    //public static final int kINTAKE_LIFT_MOTOR_ID = 20;
+    public static final int kINTAKE_LIFT_MOTOR_ID = 20;
     public static final int kINTAKE_SPIN_MOTOR_ID = 21;
     
     //public static final int kCLIMBER_LEFT_MOTOR_ID = 30;
